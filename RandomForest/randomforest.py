@@ -5,10 +5,10 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 import matplotlib.pyplot as plt
 
 # Data gotten after running data_normalizer
-X_train = pd.read_csv('X_train.csv')
-y_train = pd.read_csv('y_train.csv').values.ravel()
-X_test = pd.read_csv('X_test.csv')
-y_test = pd.read_csv('y_test.csv').values.ravel()
+X_train = pd.read_csv('../Data/X_train.csv')
+y_train = pd.read_csv('../Data/y_train.csv').values.ravel()
+X_test = pd.read_csv('../Data/X_test.csv')
+y_test = pd.read_csv('../Data/y_test.csv').values.ravel()
 
 
 #Compare several different model

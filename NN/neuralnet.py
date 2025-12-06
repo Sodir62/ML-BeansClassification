@@ -8,10 +8,10 @@ from sklearn.metrics import f1_score, classification_report, confusion_matrix
 from sklearn.utils.class_weight import compute_class_weight
 
 # Load data from CSVs
-X_train = pd.read_csv('X_train.csv').values
-y_train = pd.read_csv('y_train.csv').values.ravel()
-X_test = pd.read_csv('X_test.csv').values
-y_test = pd.read_csv('y_test.csv').values.ravel()
+X_train = pd.read_csv('../Data/X_train.csv').values
+y_train = pd.read_csv('../Data/y_train.csv').values.ravel()
+X_test = pd.read_csv('../Data/X_test.csv').values
+y_test = pd.read_csv('../Data/y_test.csv').values.ravel()
 
 # Variables
 epochs=40
