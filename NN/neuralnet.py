@@ -3,7 +3,8 @@ import pandas as pd
 import tensorflow as tf
 tf.get_logger().setLevel('ERROR')
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras import regularizers
 import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score, classification_report, confusion_matrix
 from sklearn.utils.class_weight import compute_class_weight
@@ -23,6 +24,11 @@ classes = np.unique(y_train)
 num_classes = len(classes) # 7 types of beans
 name_classes = ["Barbunya", "Bombay", "Cali", "Dermason", "Horoz", "Seker", "Sira"]
 
+# Regularization / Dropout / Early stopping
+l2_lambda = 1e-3
+dropout_rate = 0.3
+early_stopping_patience = 5
+
 # K-Fold CV settings
 # seed for consistent results
 K_FOLDS = 5
@@ -30,13 +36,15 @@ tf.random.set_seed(1234)
 np.random.seed(1234)
 
 
-def build_model(input_dim, num_classes, seed=None):
+def build_model(input_dim, num_classes, seed=None, l2_lambda=l2_lambda, dropout_rate=dropout_rate):
     if seed is not None:
         tf.random.set_seed(seed)
     model = Sequential([
         tf.keras.Input(shape=(input_dim,)),
-        Dense(25, activation='relu', name='dense_1'),
-        Dense(15, activation='relu', name='dense_2'),
+        Dense(25, activation='relu', name='dense_1', kernel_regularizer=regularizers.l2(l2_lambda)),
+        Dropout(dropout_rate),
+        Dense(15, activation='relu', name='dense_2', kernel_regularizer=regularizers.l2(l2_lambda)),
+        Dropout(dropout_rate),
         Dense(num_classes, name='logits')
     ], name='my_model')
 
@@ -79,6 +87,7 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y_train), 1):
         class_weight=class_weight_dict,
         epochs=epochs,
         batch_size=batch_size,
+        callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=early_stopping_patience, restore_best_weights=True)],
         verbose=0
     )
 
@@ -122,6 +131,7 @@ final_history = final_model.fit(
     class_weight=class_weight_full_dict,
     epochs=epochs,
     batch_size=batch_size,
+    callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=early_stopping_patience, restore_best_weights=True)],
     verbose=1 # 0 for silent
 )
 
