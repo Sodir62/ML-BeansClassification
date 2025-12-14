@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score, classification_report, confusion_matrix
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.model_selection import StratifiedKFold
+from pathlib import Path
+import visualizations as viz
 
 # Load data from CSVs
 X_train = pd.read_csv('../Data/X_train.csv').values
@@ -17,23 +19,26 @@ X_test = pd.read_csv('../Data/X_test.csv').values
 y_test = pd.read_csv('../Data/y_test.csv').values.ravel()
 
 # Variables
-epochs=40
-batch_size=32
 input_dim = X_train.shape[1] #16 features
 classes = np.unique(y_train)
 num_classes = len(classes) # 7 types of beans
 name_classes = ["Barbunya", "Bombay", "Cali", "Dermason", "Horoz", "Seker", "Sira"]
 
-# Regularization / Dropout / Early stopping
-l2_lambda = 1e-3
-dropout_rate = 0.3
-early_stopping_patience = 5
+# Hyperparameters
+epochs = 40
+batch_size = 32
+learning_rate = 0.0005
+dense1 = 32
+dense2 = 15
+l2_lambda = 0.0 # Regularization
+dropout_rate = 0.0 # Dropout
+early_stopping_patience = 5 # Early stopping
+K_FOLDS = 5 # K-Fold CV
+seed = 1234
 
-# K-Fold CV settings
 # seed for consistent results
-K_FOLDS = 5
-tf.random.set_seed(1234)
-np.random.seed(1234)
+tf.random.set_seed(seed)
+np.random.seed(seed)
 
 
 def build_model(input_dim, num_classes, seed=None, l2_lambda=l2_lambda, dropout_rate=dropout_rate):
@@ -41,22 +46,22 @@ def build_model(input_dim, num_classes, seed=None, l2_lambda=l2_lambda, dropout_
         tf.random.set_seed(seed)
     model = Sequential([
         tf.keras.Input(shape=(input_dim,)),
-        Dense(25, activation='relu', name='dense_1', kernel_regularizer=regularizers.l2(l2_lambda)),
+        Dense(dense1, activation='relu', name='dense_1', kernel_regularizer=regularizers.l2(l2_lambda)),
         Dropout(dropout_rate),
-        Dense(15, activation='relu', name='dense_2', kernel_regularizer=regularizers.l2(l2_lambda)),
+        Dense(dense2, activation='relu', name='dense_2', kernel_regularizer=regularizers.l2(l2_lambda)),
         Dropout(dropout_rate),
         Dense(num_classes, name='logits')
     ], name='my_model')
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=['accuracy']
     )
     return model
 
 # Stratified K-Fold cross validation on the training set
-skf = StratifiedKFold(n_splits=K_FOLDS, shuffle=True, random_state=1234)
+skf = StratifiedKFold(n_splits=K_FOLDS, shuffle=True, random_state=seed)
 
 val_losses = []
 val_accs = []
@@ -80,7 +85,7 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y_train), 1):
 
     # build and train model for this fold
     tf.keras.backend.clear_session()
-    model = build_model(input_dim, num_classes, seed=1234 + fold)
+    model = build_model(input_dim, num_classes, seed=seed + fold)
     history = model.fit(
         X_tr, y_tr,
         validation_data=(X_val, y_val),
@@ -118,7 +123,7 @@ print("="*60)
 # Train final model on the full training set and evaluate on the test set (same as before)
 print("\nTraining final model on full training set and evaluating on test set...")
 tf.keras.backend.clear_session()
-final_model = build_model(input_dim, num_classes, seed=1234)
+final_model = build_model(input_dim, num_classes, seed=seed)
 
 # Balanced class weights for full training set
 class_weights_full = compute_class_weight(class_weight='balanced', classes=classes, y=y_train)
@@ -177,3 +182,35 @@ print("CLASSIFICATION REPORT")
 print("="*70)
 print(classification_report(y_test, y_test_pred, target_names=name_classes, digits=4))
 print("="*70)
+
+# Create and save visualizations to NN/outputs
+outdir = Path(__file__).parent / 'outputs'
+outdir.mkdir(parents=True, exist_ok=True)
+
+# simple feature names if none available
+feature_names = ["Area", "Perimeter", "MajorAxisLength", "MinorAxisLength", "AspectRatio", "Eccentricity", "ConvexArea", "EquivDiameter","Extent", "Solidity", "Roundness", "Compactness", "ShapeFactor1", "ShapeFactor2", "ShapeFactor3", "ShapeFactor4"]
+
+# wrapper so sklearn permutation importance receives class labels from Keras
+class _KerasLabelWrapper:
+    def __init__(self, model):
+        self.model = model
+    def predict(self, X):
+        preds = self.model.predict(X, verbose=0)
+        return np.argmax(preds, axis=1)
+
+try:
+    viz.plot_confusion_matrix(y_test, y_test_pred, name_classes, outdir / 'confusion_matrix.png')
+    viz.plot_confusion_matrix(y_test, y_test_pred, name_classes, outdir / 'confusion_matrix_norm.png', normalize=True)
+    viz.plot_per_class_f1(y_test, y_test_pred, name_classes, outdir / 'per_class_f1.png')
+    # Compare class distributions between training and test sets
+    viz.plot_class_distribution({'Train': y_train, 'Test': y_test}, name_classes, outdir / 'class_distribution.png')
+    viz.plot_learning_curves(final_history, outdir / 'learning_curves.png')
+
+    # permutation importance of Keras model (wrapped) using test set
+    try:
+        wrapper = _KerasLabelWrapper(final_model)
+        viz.plot_feature_importance(wrapper, feature_names, outdir / 'feature_importance.png', X=X_test, y=y_test)
+    except Exception as e:
+        print(f'  Could not compute feature importance: {e}')
+except Exception as e:
+    print(f'Warning: saving visualizations failed: {e}')
