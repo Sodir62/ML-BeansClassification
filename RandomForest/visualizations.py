@@ -33,7 +33,7 @@ CONFIG_LOW_GAP = {
     'max_depth': 10,
     'min_samples_split': 20,
     'min_samples_leaf': 8,
-    'max_features': None,
+    'max_features': 'sqrt',  # Match randomforest.py default
 }
 
 # Config 2: Best CV F1 with acceptable gap
@@ -43,7 +43,7 @@ CONFIG_BEST_F1 = {
     'max_depth': 10,
     'min_samples_split': 20,
     'min_samples_leaf': 4,
-    'max_features': None,
+    'max_features': 'sqrt',  # Match randomforest.py default
 }
 
 # =============================================================================
@@ -101,9 +101,9 @@ for config in [CONFIG_LOW_GAP, CONFIG_BEST_F1]:
         'y_test_pred': y_test_pred
     }
 
-# Use the "Best F1" model as primary for most visualizations
-primary_model = models['Best F1']['model']
-primary_pred = models['Best F1']['y_test_pred']
+# Use the "Low Gap (Heavy Reg)" model as primary for most visualizations
+primary_model = models['Low Gap (Heavy Reg)']['model']
+primary_pred = models['Low Gap (Heavy Reg)']['y_test_pred']
 
 # =============================================================================
 # CLASS DISTRIBUTION BAR CHART
@@ -160,7 +160,7 @@ fig, ax = plt.subplots(figsize=(10, 8))
 cm = confusion_matrix(y_test, primary_pred)
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=CLASS_NAMES)
 disp.plot(ax=ax, cmap='Blues', values_format='d', colorbar=True)
-ax.set_title('Confusion Matrix - Raw Counts (Best F1 Model)', fontsize=14, fontweight='bold')
+ax.set_title('Confusion Matrix - Raw Counts (Heavy Reg Model)', fontsize=14, fontweight='bold')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 plt.savefig(os.path.join(OUTPUT_DIR, 'confusion_matrix_counts.png'), dpi=150, bbox_inches='tight')
@@ -172,7 +172,7 @@ fig, ax = plt.subplots(figsize=(10, 8))
 cm_normalized = confusion_matrix(y_test, primary_pred, normalize='true')
 disp = ConfusionMatrixDisplay(confusion_matrix=cm_normalized, display_labels=CLASS_NAMES)
 disp.plot(ax=ax, cmap='Blues', values_format='.2f', colorbar=True)
-ax.set_title('Normalized Confusion Matrix - Recall (Best F1 Model)', fontsize=14, fontweight='bold')
+ax.set_title('Normalized Confusion Matrix - Recall (Heavy Reg Model)', fontsize=14, fontweight='bold')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 plt.savefig(os.path.join(OUTPUT_DIR, 'confusion_matrix_normalized.png'), dpi=150, bbox_inches='tight')
@@ -198,7 +198,7 @@ ax.barh(y_pos, importances[indices][::-1], color=colors)
 ax.set_yticks(y_pos)
 ax.set_yticklabels([feature_names[i] for i in indices][::-1])
 ax.set_xlabel('Feature Importance (Gini Impurity Decrease)')
-ax.set_title('Random Forest Feature Importances (Best F1 Model)', fontsize=14, fontweight='bold')
+ax.set_title('Random Forest Feature Importances (Heavy Reg Model)', fontsize=14, fontweight='bold')
 
 # Value labels
 for i, v in enumerate(importances[indices][::-1]):
@@ -370,6 +370,52 @@ plt.close()
 print(f"Saved: {OUTPUT_DIR}/hyperparameter_sensitivity.png")
 
 # =============================================================================
+# PER-CLASS F1 SCORES
+# =============================================================================
+print("\n" + "="*70)
+print("7. GENERATING PER-CLASS F1 PLOT")
+print("="*70)
+
+from sklearn.metrics import f1_score
+
+fig, ax = plt.subplots(figsize=(12, 6))
+
+x = np.arange(len(CLASS_NAMES))
+width = 0.35
+
+# Calculate per-class F1 for both models
+for idx, (name, data) in enumerate(models.items()):
+    y_pred = data['y_test_pred']
+    per_class_f1 = f1_score(y_test, y_pred, average=None)
+
+    offset = width * (idx - 0.5)
+    bars = ax.bar(x + offset, per_class_f1, width, label=name)
+
+    # Add value labels
+    for bar, val in zip(bars, per_class_f1):
+        ax.annotate(f'{val:.3f}', xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
+                    xytext=(0, 3), textcoords="offset points", ha='center', va='bottom', fontsize=9)
+
+# Add macro F1 lines
+colors = ['steelblue', 'darkorange']
+for idx, (name, data) in enumerate(models.items()):
+    ax.axhline(y=data['test_f1'], color=colors[idx], linestyle='--', alpha=0.7,
+               label=f"Macro F1 ({name}): {data['test_f1']:.4f}")
+
+ax.set_xlabel('Bean Class')
+ax.set_ylabel('F1 Score')
+ax.set_title('Per-Class F1 Score Comparison', fontsize=14, fontweight='bold')
+ax.set_xticks(x)
+ax.set_xticklabels(CLASS_NAMES)
+ax.legend(loc='lower right')
+ax.set_ylim(0.85, 1.02)
+
+plt.tight_layout()
+plt.savefig(os.path.join(OUTPUT_DIR, 'per_class_f1.png'), dpi=150, bbox_inches='tight')
+plt.close()
+print(f"Saved: {OUTPUT_DIR}/per_class_f1.png")
+
+# =============================================================================
 # SUMMARY
 # =============================================================================
 print("\n" + "="*70)
@@ -377,12 +423,13 @@ print("VISUALIZATION SUMMARY")
 print("="*70)
 print(f"\nAll visualizations saved to: {OUTPUT_DIR}/")
 print("\nFiles generated:")
-print("   class_distribution.png       - Train/test class sample counts")
+print("  class_distribution.png       - Train/test class sample counts")
 print("  confusion_matrix_counts.png  - Raw confusion matrix")
 print("  confusion_matrix_normalized.png - Normalized confusion matrix")
 print("  feature_importance.png       - Feature importance ranking")
 print("  learning_curves.png          - Train vs validation learning curves")
 print("  hyperparameter_sensitivity.png - Effect of each hyperparameter")
+print("  per_class_f1.png             - Per-class F1 score comparison")
 
 print("\n" + "="*70)
 print("MODEL COMPARISON")
