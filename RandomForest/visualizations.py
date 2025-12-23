@@ -1,7 +1,4 @@
-# visualizations.py - Comprehensive RF model visualizations
-# Includes: Confusion matrices, feature importance, learning curves,
-# hyperparameter sensitivity, class distribution, per-class F1
-
+# visualisations were helped make with claude code
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,22 +7,15 @@ from sklearn.model_selection import learning_curve, StratifiedKFold
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score, classification_report
 import os
 
-# =============================================================================
-# CONFIGURATION
-# =============================================================================
+
 RANDOM_STATE = 42
 N_JOBS = -1
 CV_FOLDS = 5
-
 OUTPUT_DIR = 'outputs'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-# Class names - alphabetical order to match LabelEncoder
 CLASS_NAMES = ["Barbunya", "Bombay", "Cali", "Dermason", "Horoz", "Seker", "Sira"]
 
-# =============================================================================
-# TWO BEST MODEL CONFIGURATIONS
-# =============================================================================
+
 # Config 1: Lowest overfitting gap (from grid search + manual testing)
 CONFIG_LOW_GAP = {
     'name': 'Low Gap (Heavy Reg)',
@@ -46,9 +36,6 @@ CONFIG_BEST_F1 = {
     'max_features': 'sqrt',  # Match randomforest.py default
 }
 
-# =============================================================================
-# LOAD DATA
-# =============================================================================
 print("Loading data...")
 X_train = pd.read_csv('../Data/X_train.csv')
 y_train = pd.read_csv('../Data/y_train.csv').values.ravel()
@@ -61,9 +48,6 @@ print(f"Training samples: {X_train.shape[0]}")
 print(f"Test samples:     {X_test.shape[0]}")
 print(f"Features:         {X_train.shape[1]}")
 
-# =============================================================================
-# TRAIN BOTH MODELS
-# =============================================================================
 print("\n" + "="*70)
 print("TRAINING MODELS")
 print("="*70)
@@ -105,9 +89,7 @@ for config in [CONFIG_LOW_GAP, CONFIG_BEST_F1]:
 primary_model = models['Low Gap (Heavy Reg)']['model']
 primary_pred = models['Low Gap (Heavy Reg)']['y_test_pred']
 
-# =============================================================================
-# CLASS DISTRIBUTION BAR CHART
-# =============================================================================
+
 print("\n" + "="*70)
 print("1. GENERATING CLASS DISTRIBUTION CHART")
 print("="*70)
@@ -148,9 +130,7 @@ print(f"Saved: {OUTPUT_DIR}/class_distribution.png")
 
 
 
-# =============================================================================
-# CONFUSION MATRICES (for Best F1 model)
-# =============================================================================
+# CONFUSION MATRICES 
 print("\n" + "="*70)
 print("3. GENERATING CONFUSION MATRICES")
 print("="*70)
@@ -179,9 +159,7 @@ plt.savefig(os.path.join(OUTPUT_DIR, 'confusion_matrix_normalized.png'), dpi=150
 plt.close()
 print(f"Saved: {OUTPUT_DIR}/confusion_matrix_normalized.png")
 
-# =============================================================================
 # FEATURE IMPORTANCE
-# =============================================================================
 print("\n" + "="*70)
 print("4. GENERATING FEATURE IMPORTANCE PLOT")
 print("="*70)
@@ -215,9 +193,8 @@ print("-" * 40)
 for rank, idx in enumerate(indices, 1):
     print(f"{rank:2d}. {feature_names[idx]:<20} {importances[idx]:.4f}")
 
-# =============================================================================
+
 # LEARNING CURVES
-# =============================================================================
 print("\n" + "="*70)
 print("5. GENERATING LEARNING CURVES")
 print("="*70)
@@ -279,9 +256,8 @@ plt.savefig(os.path.join(OUTPUT_DIR, 'learning_curves.png'), dpi=150, bbox_inche
 plt.close()
 print(f"Saved: {OUTPUT_DIR}/learning_curves.png")
 
-# =============================================================================
+
 # HYPERPARAMETER SENSITIVITY PLOTS
-# =============================================================================
 print("\n" + "="*70)
 print("6. GENERATING HYPERPARAMETER SENSITIVITY PLOTS")
 print("="*70)
@@ -369,9 +345,7 @@ plt.savefig(os.path.join(OUTPUT_DIR, 'hyperparameter_sensitivity.png'), dpi=150,
 plt.close()
 print(f"Saved: {OUTPUT_DIR}/hyperparameter_sensitivity.png")
 
-# =============================================================================
 # PER-CLASS F1 SCORES
-# =============================================================================
 print("\n" + "="*70)
 print("7. GENERATING PER-CLASS F1 PLOT")
 print("="*70)
@@ -415,9 +389,8 @@ plt.savefig(os.path.join(OUTPUT_DIR, 'per_class_f1.png'), dpi=150, bbox_inches='
 plt.close()
 print(f"Saved: {OUTPUT_DIR}/per_class_f1.png")
 
-# =============================================================================
+
 # SUMMARY
-# =============================================================================
 print("\n" + "="*70)
 print("VISUALIZATION SUMMARY")
 print("="*70)

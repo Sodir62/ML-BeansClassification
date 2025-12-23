@@ -29,7 +29,7 @@ print(f"Training samples: {X_train.shape[0]}")
 print(f"Test samples:     {X_test.shape[0]}")
 print(f"Features:         {X_train.shape[1]}")
 
-
+#predefined grid to save on compute
 param_grid = {
     'n_estimators': [50, 100, 200],
     'max_depth': [10, 15, 20, 25, None],

@@ -76,9 +76,9 @@ results.append({
 print("\n[2/4] Light tuning")
 rf_light = RandomForestClassifier(
     n_estimators=N_ESTIMATORS,
-    max_depth=20,              # limit tree depth
-    min_samples_split=5,       # need 5 samples to split
-    min_samples_leaf=2,        # need 2 samples in each leaf
+    max_depth=20,              
+    min_samples_split=5,       
+    min_samples_leaf=2,        
     class_weight='balanced',
     random_state=RANDOM_STATE,
     n_jobs=N_JOBS
