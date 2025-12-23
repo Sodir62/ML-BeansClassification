@@ -12,6 +12,12 @@ from sklearn.model_selection import StratifiedKFold
 from pathlib import Path
 import visualizations as viz
 
+###################################################
+#                                                 #
+#  The neural net was adapted from the lab code   #
+#                                                 #
+###################################################
+
 # Load data from CSVs
 X_train = pd.read_csv('../Data/X_train.csv').values
 y_train = pd.read_csv('../Data/y_train.csv').values.ravel()
@@ -33,7 +39,7 @@ dense2 = 15
 l2_lambda = 0.0 # Regularization
 dropout_rate = 0.0 # Dropout
 early_stopping_patience = 5 # Early stopping
-K_FOLDS = 5 # K-Fold CV
+K_folds = 5 # K-Fold CV
 seed = 1234
 
 # seed for consistent results
@@ -41,7 +47,7 @@ tf.random.set_seed(seed)
 np.random.seed(seed)
 
 
-def build_model(input_dim, num_classes, seed=None, l2_lambda=l2_lambda, dropout_rate=dropout_rate):
+def build_model(input_dim, num_classes, seed=seed, l2_lambda=l2_lambda, dropout_rate=dropout_rate):
     if seed is not None:
         tf.random.set_seed(seed)
     model = Sequential([
@@ -61,7 +67,7 @@ def build_model(input_dim, num_classes, seed=None, l2_lambda=l2_lambda, dropout_
     return model
 
 # Stratified K-Fold cross validation on the training set
-skf = StratifiedKFold(n_splits=K_FOLDS, shuffle=True, random_state=seed)
+skf = StratifiedKFold(n_splits=K_folds, shuffle=True, random_state=seed)
 
 val_losses = []
 val_accs = []
@@ -69,11 +75,11 @@ val_f1_macros = []
 val_f1_weighteds = []
 
 print("\n" + "="*70)
-print(f"Starting {K_FOLDS}-fold cross-validation on training set")
+print(f"Starting {K_folds}-fold cross-validation on training set")
 print("="*70)
 
 for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y_train), 1):
-    print(f"\n--- Fold {fold}/{K_FOLDS} ---")
+    print(f"\n--- Fold {fold}/{K_folds} ---")
     X_tr, X_val = X_train[train_idx], X_train[val_idx]
     y_tr, y_val = y_train[train_idx], y_train[val_idx]
 
@@ -113,7 +119,7 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y_train), 1):
 
 # Summary of cross-validation
 print("\n" + "="*60)
-print(f"{K_FOLDS}-Fold CV results (mean ± std):")
+print(f"{K_folds}-Fold CV results (mean ± std):")
 print(f"  Loss:    {np.mean(val_losses):.4f} ± {np.std(val_losses):.4f}")
 print(f"  Acc:     {np.mean(val_accs):.4f} ± {np.std(val_accs):.4f}")
 print(f"  F1 macro:{np.mean(val_f1_macros):.4f} ± {np.std(val_f1_macros):.4f}")
